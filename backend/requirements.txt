@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+asyncpg
+pydantic
+passlib
+bcrypt
+PyJWT
+kafka-python-ng
+email-validator

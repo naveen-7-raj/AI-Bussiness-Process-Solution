@@ -1,0 +1,130 @@
+:root {
+  /* Enterprise Light Theme */
+  --bg: #f8f9fa;
+  --bg-surface: #ffffff;
+  --bg-surface-hover: #f1f3f5;
+  --text: #495057;
+  --text-h: #212529;
+  --border: #dee2e6;
+  
+  /* Primary Accent: Enterprise Blue */
+  --accent: #228be6;
+  --accent-hover: #1c7ed6;
+  --accent-bg: rgba(34, 139, 230, 0.1);
+
+  /* Status Colors */
+  --status-success: #12b886;
+  --status-warning: #f59f00;
+  --status-error: #fa5252;
+  --status-info: #15aabf;
+
+  /* Typography */
+  --sans: 'Inter', system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --heading: 'Inter', system-ui, 'Segoe UI', Roboto, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Consolas, monospace;
+
+  /* Layout & Spacing */
+  --sidebar-width: 250px;
+  --header-height: 60px;
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+
+  font: 14px/1.5 var(--sans);
+  color-scheme: light dark;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Enterprise Dark Theme */
+    --bg: #141517;
+    --bg-surface: #1f2023;
+    --bg-surface-hover: #2c2e33;
+    --text: #c1c2c5;
+    --text-h: #f8f9fa;
+    --border: #373a40;
+    
+    --accent: #339af0;
+    --accent-hover: #4dabf7;
+    --accent-bg: rgba(51, 154, 240, 0.15);
+  }
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--heading);
+  font-weight: 600;
+  color: var(--text-h);
+  margin: 0 0 16px;
+}
+
+h1 { font-size: 28px; letter-spacing: -0.5px; }
+h2 { font-size: 20px; letter-spacing: -0.3px; }
+h3 { font-size: 16px; font-weight: 500; }
+
+p {
+  margin: 0 0 16px;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+button {
+  background-color: var(--accent);
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: var(--accent-hover);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+input, select, textarea {
+  background-color: var(--bg-surface);
+  color: var(--text-h);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-family: var(--sans);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-bg);
+}

@@ -1,0 +1,39 @@
+# ── Node ──────────────────────────────────────────────────────────────────────
+# Recursive — catches frontend/node_modules/ and any nested location
+**/node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ── Python ────────────────────────────────────────────────────────────────────
+**/__pycache__/
+**/*.py[cod]
+**/*$py.class
+.venv/
+venv/
+ENV/
+env/
+
+# ── ML model binaries ─────────────────────────────────────────────────────────
+# Regenerate with: python ml/train.py
+ml/saved_model/*.joblib
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Secrets / environment ─────────────────────────────────────────────────────
+.env
+
+# ── Scratch / debug / one-off scripts (not application code) ──────────────────
+check_*.py
+debug_*.py
+verify_*.py
+demo_*.py
+tmp_*.py
+scratch_*.py
+setup_test_scenario.py
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
