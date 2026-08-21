@@ -14,9 +14,12 @@ venv/
 ENV/
 env/
 
-# ── ML model binaries ─────────────────────────────────────────────────────────
+# ── ML model binaries & large raw datasets ───────────────────────────────────
 # Regenerate with: python ml/train.py
 ml/saved_model/*.joblib
+ml/data/*.zip
+ml/data/*.xlsx
+ml/data/processed_uci_retail_data.csv
 
 # ── Logs ──────────────────────────────────────────────────────────────────────
 *.log
@@ -26,6 +29,7 @@ logs/
 .env
 
 # ── Scratch / debug / one-off scripts (not application code) ──────────────────
+scratch/
 check_*.py
 debug_*.py
 verify_*.py

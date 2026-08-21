@@ -42,28 +42,44 @@ async def ws_smoke_test():
             print(f"  [Kafka]       Produced event to {meta.topic} offset={meta.offset}")
             results["Kafka produce"] = True
 
-            # ── Step 3: Wait for broadcast ───────────────────────────────────
+            # ── Step 3: Wait for broadcast matching our event ─────────────────
             print("  [WebSocket]   Waiting for broadcast (up to 20s)...")
             try:
-                raw = await asyncio.wait_for(ws.recv(), timeout=20)
-                msg = json.loads(raw)
-                print(f"  [WebSocket]   Received message keys: {list(msg.keys())}")
-                results["WebSocket receive"] = True
+                deadline = asyncio.get_event_loop().time() + 20.0
+                matched_msg = None
+                while asyncio.get_event_loop().time() < deadline:
+                    raw = await asyncio.wait_for(ws.recv(), timeout=max(1.0, deadline - asyncio.get_event_loop().time()))
+                    msg = json.loads(raw)
+                    event_name = msg.get("event", "")
+                    print(f"  [WebSocket]   Received event: {event_name} (risk={msg.get('risk')})")
+                    if "inventory" in event_name.lower():
+                        matched_msg = msg
+                        break
 
-                # ── Step 4: Validate payload ─────────────────────────────────
-                risk = msg.get("risk", "")
-                recommendation = msg.get("recommendation", "")
-                root_cause = msg.get("root_cause", "")
-                event_name = msg.get("event", "")
+                if matched_msg:
+                    msg = matched_msg
+                    results["WebSocket receive"] = True
 
-                print(f"  [Payload]     event={event_name}")
-                print(f"  [Payload]     risk={risk}")
-                print(f"  [Payload]     recommendation={recommendation[:80]}")
-                print(f"  [Payload]     root_cause={root_cause[:80]}")
+                    # ── Step 4: Validate payload ─────────────────────────────────
+                    risk = msg.get("risk", "")
+                    recommendation = msg.get("recommendation", "")
+                    root_cause = msg.get("root_cause", "")
+                    event_name = msg.get("event", "")
 
-                results["risk=HIGH"] = risk.upper() == "HIGH"
-                results["has recommendation"] = bool(recommendation)
-                results["has root_cause"] = bool(root_cause)
+                    print(f"  [Payload]     event={event_name}")
+                    print(f"  [Payload]     risk={risk}")
+                    print(f"  [Payload]     recommendation={recommendation[:80]}")
+                    print(f"  [Payload]     root_cause={root_cause[:80]}")
+
+                    results["risk=HIGH"] = risk.upper() == "HIGH"
+                    results["has recommendation"] = bool(recommendation)
+                    results["has root_cause"] = bool(root_cause)
+                else:
+                    print("  [WebSocket]   TIMEOUT — no inventory_shortage broadcast received in 20s")
+                    results["WebSocket receive"] = False
+                    results["risk=HIGH"] = False
+                    results["has recommendation"] = False
+                    results["has root_cause"] = False
 
             except asyncio.TimeoutError:
                 print("  [WebSocket]   TIMEOUT — no broadcast received in 20s")

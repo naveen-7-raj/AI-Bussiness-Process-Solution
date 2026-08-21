@@ -86,7 +86,8 @@ def predict_delay(features: dict) -> dict:
     else:
         risk_level = "low"
 
-    explanations = get_feature_explanations(features) if risk_level == "high" else []
+    # Compute exact TreeSHAP attributions for high and medium risk anomalies
+    explanations = get_feature_explanations(features) if (risk_level in ["high", "medium"] or probability >= 0.35) else []
 
     return {
         "delay_probability": round(probability, 4),

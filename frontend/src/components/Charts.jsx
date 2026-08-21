@@ -56,28 +56,63 @@ export const SparkLine = ({ data = [], color = 'var(--accent)', fillColor, heigh
  *   items  – [{ label, value, max }]
  *   color  – bar color function (value) => css-color string
  */
-export const BarChart = ({ items = [], colorFn }) => {
+const defaultRiskColor = (val) => {
+    if (val >= 70) return 'var(--status-error, #dc2626)';
+    if (val >= 40) return 'var(--status-warning, #d97706)';
+    return 'var(--status-success, #16a34a)';
+};
+
+export const BarChart = ({ items = [], colorFn = defaultRiskColor, onItemClick }) => {
     if (!items || items.length === 0) {
         return (
-            <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.35, fontSize: 12 }}>
+            <div style={{ height: '100%', minHeight: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.35, fontSize: 12 }}>
                 No data yet
             </div>
         );
     }
 
-    const globalMax = Math.max(...items.map(i => i.value), 1);
+    const normalized = items.map(i => {
+        const val = typeof i.value === 'number' ? i.value : (typeof i.pct === 'number' ? i.pct : 0);
+        return { label: i.label, value: val };
+    });
+
+    const globalMax = Math.max(...normalized.map(i => i.value), 1);
+    const isClickable = typeof onItemClick === 'function';
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {items.map(({ label, value }) => {
-                const pct = (value / globalMax) * 100;
-                const barColor = colorFn ? colorFn(value) : 'var(--accent)';
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingBottom: '2px' }}>
+            {normalized.map(({ label, value }) => {
+                const pct = Math.min(100, Math.max(0, (value / globalMax) * 100));
+                const barColor = (colorFn || defaultRiskColor)(value);
                 return (
-                    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: '12px', width: '44px', flexShrink: 0, color: 'var(--text-h)' }}>
+                    <div
+                        key={label}
+                        onClick={() => isClickable && onItemClick(label)}
+                        title={isClickable ? `Click to view recommendations for ${label}` : undefined}
+                        style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '10px',
+                            minHeight: '20px',
+                            cursor: isClickable ? 'pointer' : 'default',
+                            padding: '2px 4px',
+                            borderRadius: '4px',
+                            transition: 'background-color 0.15s ease',
+                        }}
+                    >
+                        <span style={{
+                            fontFamily: 'var(--mono)',
+                            fontSize: '12px',
+                            width: '44px',
+                            flexShrink: 0,
+                            color: 'var(--text-h)',
+                            fontWeight: isClickable ? 600 : 400,
+                            textDecoration: isClickable ? 'underline' : 'none',
+                            textDecorationColor: 'var(--border)',
+                        }}>
                             {label}
                         </span>
-                        <div style={{ flex: 1, background: 'var(--bg-surface-hover)', borderRadius: '4px', overflow: 'hidden', height: '16px' }}>
+                        <div style={{ flex: 1, background: 'var(--bg-surface-hover)', borderRadius: '4px', overflow: 'hidden', height: '14px' }}>
                             <div
                                 style={{
                                     width: `${pct}%`,
@@ -88,8 +123,8 @@ export const BarChart = ({ items = [], colorFn }) => {
                                 }}
                             />
                         </div>
-                        <span style={{ fontFamily: 'var(--mono)', fontSize: '12px', width: '40px', textAlign: 'right', color: barColor, fontWeight: 600 }}>
-                            {value.toFixed(1)}%
+                        <span style={{ fontFamily: 'var(--mono)', fontSize: '12px', width: '44px', flexShrink: 0, textAlign: 'right', color: barColor, fontWeight: 600 }}>
+                            {Number(value).toFixed(1)}%
                         </span>
                     </div>
                 );

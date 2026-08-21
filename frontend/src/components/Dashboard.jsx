@@ -1,61 +1,77 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useFetch } from '../hooks/useFetch';
 import { SparkLine, BarChart } from './Charts';
 
 // ─── constants ────────────────────────────────────────────────────────────────
-const POLL_MS    = 15_000;   // KPI cards refresh every 15 s
-const TREND_MS   = 30_000;   // Trend charts refresh every 30 s
+const POLL_MS    = 15_000;
+const TREND_MS   = 30_000;
+
+const WAREHOUSE_NAMES = {
+    'WH01': 'Chennai Central Hub',
+    'WH02': 'Coimbatore Logistics Hub',
+    'WH03': 'Bengaluru Distribution Center',
+    'WH04': 'Kochi Regional Warehouse',
+    'WH05': 'Hyderabad South Zone Hub',
+};
 
 // ─── small helpers ─────────────────────────────────────────────────────────────
 const riskBadge = (risk) => {
-    if (!risk) return 'info';
+    if (!risk) return 'neutral';
     const r = String(risk).toUpperCase();
     if (r === 'HIGH' || r === 'OVERLOADED') return 'error';
     if (r === 'MEDIUM')                     return 'warning';
     return 'success';
 };
 
-const riskRowStyle = (pct) => {
-    if (pct >= 70) return { borderLeft: '3px solid var(--status-error)',   background: 'rgba(250,82,82,0.04)' };
-    if (pct >= 40) return { borderLeft: '3px solid var(--status-warning)', background: 'rgba(245,159,0,0.04)' };
-    return {};
-};
-
-const riskBarColor = (pct) => {
-    if (pct >= 70) return 'var(--status-error)';
-    if (pct >= 40) return 'var(--status-warning)';
-    return 'var(--status-success)';
-};
-
 const fmt = (ts) => {
     if (!ts) return '—';
-    try { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+    try { return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
     catch { return ts; }
 };
 
-const fmtHour = (iso) => {
-    try { return new Date(iso).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
-    catch { return iso; }
+const formatEventDescription = (evt) => {
+    const type = (evt.event_type || '').toLowerCase();
+    const wid = evt.warehouse_id ? ` at ${evt.warehouse_id}` : '';
+    const pid = evt.product_id ? ` for ${evt.product_id}` : '';
+
+    if (type === 'demand_spike' || type === 'demand') {
+        return `Order Velocity Surge${wid}`;
+    }
+    if (type === 'inventory_shortage' || type === 'inventory') {
+        return `Inventory Shortage Alert${pid}${wid}`;
+    }
+    if (type === 'warehouse_overload' || type === 'warehouse') {
+        return `Processing Congestion & Backlog Surge${wid}`;
+    }
+    if (type === 'order_created' || type === 'orders') {
+        return `New Order Ingested${pid ? ` (${evt.product_id})` : ''}${wid}`;
+    }
+    return (evt.event_type || 'Operational Event')
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, l => l.toUpperCase()) + wid;
 };
 
 // ─── sub-components ────────────────────────────────────────────────────────────
-const KpiCard = ({ title, value, sub, subClass = 'neutral', loading, accent }) => (
-    <div className="stat-card" style={accent ? { borderTop: `3px solid ${accent}` } : {}}>
-        <span className="stat-title">{title}</span>
-        <span className="stat-value" style={loading ? { opacity: 0.3 } : {}}>
+const KpiCard = ({ title, value, sub, subClass = 'neutral', loading }) => (
+    <div className="stat-card">
+        <div className="stat-title">
+            <span>{title}</span>
+        </div>
+        <div className="stat-value" style={loading ? { opacity: 0.3 } : {}}>
             {loading ? '…' : (value ?? '—')}
-        </span>
-        {sub && <span className={`stat-change ${subClass}`}>{sub}</span>}
+        </div>
+        {sub && <div className={`stat-change ${subClass}`}>{sub}</div>}
     </div>
 );
 
 const SectionHeader = ({ title, sub, badge, badgeClass = 'info' }) => (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '16px' }}>
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
         <div>
-            <h3 style={{ margin: 0 }}>{title}</h3>
-            {sub && <p style={{ margin: '2px 0 0', fontSize: '12px', opacity: 0.6 }}>{sub}</p>}
+            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>{title}</h3>
+            {sub && <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>{sub}</p>}
         </div>
         {badge != null && <span className={`badge ${badgeClass}`}>{badge}</span>}
     </div>
@@ -63,7 +79,11 @@ const SectionHeader = ({ title, sub, badge, badgeClass = 'info' }) => (
 
 // ─── main component ─────────────────────────────────────────────────────────────
 const Dashboard = () => {
-    const { token } = useAuth();
+    const { token, user } = useAuth();
+    const navigate = useNavigate();
+    const userAssignedFacility = user?.assigned_facility || 'WH01';
+
+    const [facilityScope, setFacilityScope] = useState('ALL');
 
     // live WS feed
     const { events: realtimeEvents, connected: wsConnected, clearEvents } = useWebSocket();
@@ -83,300 +103,314 @@ const Dashboard = () => {
         (invTrend?.trend ?? []).map(p => p.total_qty), [invTrend]);
 
     const riskItems = useMemo(() =>
-        (wrhRisk?.warehouses ?? []).map(w => ({ label: w.warehouse_id, value: w.avg_risk_pct })),
-    [wrhRisk]);
+        (wrhRisk?.warehouses ?? [])
+            .filter(w => facilityScope === 'ALL' || w.warehouse_id === facilityScope)
+            .map(w => ({
+                label: w.warehouse_id,
+                value: w.avg_risk_pct ?? 0,
+                pct: w.avg_risk_pct ?? 0,
+                count: w.sample_count,
+            })), [wrhRisk, facilityScope]);
 
-    const highRisk = hrData?.high_risk_warehouses ?? [];
-
-    // derive active alerts from WS events (HIGH-risk events in the last feed)
-    const wsHighCount = useMemo(
-        () => realtimeEvents.filter(e => String(e.risk).toUpperCase() === 'HIGH').length,
-        [realtimeEvents]
+    const rawHighRisk = hrData?.high_risk_warehouses ?? hrData?.warehouses ?? [];
+    const highRisk = useMemo(() =>
+        rawHighRisk.filter(w => facilityScope === 'ALL' || w.warehouse_id === facilityScope),
+        [rawHighRisk, facilityScope]
     );
+
+    const filteredWsEvents = useMemo(() =>
+        realtimeEvents.filter(e => facilityScope === 'ALL' || e.warehouse_id === facilityScope),
+        [realtimeEvents, facilityScope]
+    );
+
+    const wsHighCount = filteredWsEvents.filter(e => String(e.risk).toUpperCase() === 'HIGH').length;
 
     return (
         <div>
-            {/* ── page title ── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+            {/* ── Page Header & Facility Scope Toggle ── */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
-                    <h2 style={{ margin: 0 }}>Dashboard Overview</h2>
-                    <p style={{ margin: '2px 0 0', fontSize: '12px', opacity: 0.55 }}>
-                        Live data from Kafka → ML → DB • Refreshes every {POLL_MS / 1000}s
+                    <h1 style={{ fontSize: '22px', fontWeight: 600, color: 'var(--text-h)', marginBottom: '4px' }}>
+                        Operational Overview
+                    </h1>
+                    <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
+                        Real-time process telemetry, order velocity, and predictive risk distribution.
                     </p>
                 </div>
-                <span className={`badge ${wsConnected ? 'success' : 'warning'}`}
-                    style={wsConnected ? { animation: 'ws-pulse 2s ease-in-out infinite' } : {}}>
-                    {wsConnected ? '● WebSocket Live' : '○ Reconnecting…'}
-                </span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'inline-flex', background: 'var(--bg-subtle, #f1f5f9)', padding: '3px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                        <button
+                            onClick={() => setFacilityScope('ALL')}
+                            style={{
+                                padding: '4px 10px',
+                                fontSize: '12px',
+                                fontWeight: 500,
+                                borderRadius: '4px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                background: facilityScope === 'ALL' ? '#ffffff' : 'transparent',
+                                color: facilityScope === 'ALL' ? 'var(--text-h)' : 'var(--text-muted)',
+                                boxShadow: facilityScope === 'ALL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.15s ease',
+                            }}
+                        >
+                            🌐 All Network Hubs
+                        </button>
+                        <button
+                            onClick={() => setFacilityScope(userAssignedFacility)}
+                            style={{
+                                padding: '4px 10px',
+                                fontSize: '12px',
+                                fontWeight: 500,
+                                borderRadius: '4px',
+                                border: 'none',
+                                cursor: 'pointer',
+                                background: facilityScope !== 'ALL' ? '#ffffff' : 'transparent',
+                                color: facilityScope !== 'ALL' ? 'var(--text-h)' : 'var(--text-muted)',
+                                boxShadow: facilityScope !== 'ALL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
+                                transition: 'all 0.15s ease',
+                            }}
+                        >
+                            📍 My Assigned Hub ({userAssignedFacility})
+                        </button>
+                    </div>
+                    <span className={`badge ${wsConnected ? 'success' : 'warning'}`}>
+                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: wsConnected ? 'var(--status-success)' : 'var(--status-warning)', display: 'inline-block' }}></span>
+                        {wsConnected ? 'Kafka Live' : 'Connecting'}
+                    </span>
+                </div>
             </div>
 
-            {/* ── KPI cards ── */}
+            {/* Scope Info Banner when assigned hub selected */}
+            {facilityScope !== 'ALL' && (
+                <div className="card" style={{ marginBottom: '16px', padding: '10px 14px', background: 'var(--bg-surface, #ffffff)', borderColor: 'var(--brand-blue, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
+                        <span className="badge info" style={{ fontSize: '11px' }}>Facility View</span>
+                        <span style={{ fontWeight: 600, color: 'var(--text-h)' }}>
+                            {userAssignedFacility} — {WAREHOUSE_NAMES[userAssignedFacility] || 'Regional Facility'}
+                        </span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
+                            (Showing telemetry, high-risk anomalies, and live events filtered specifically for your assigned hub)
+                        </span>
+                    </div>
+                    <button
+                        onClick={() => setFacilityScope('ALL')}
+                        style={{ background: 'none', border: 'none', color: 'var(--brand-blue)', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                    >
+                        Reset to Global Network →
+                    </button>
+                </div>
+            )}
+
+            {/* ── KPI Grid ── */}
             <div className="grid-cards">
                 <KpiCard
                     title="Total Orders"
                     value={stats?.total_orders?.toLocaleString()}
-                    sub={stats ? `Across all warehouses` : undefined}
+                    sub="Cumulative logged"
                     loading={statsLoading}
-                    accent="var(--accent)"
                 />
                 <KpiCard
-                    title="Current Inventory"
-                    value={stats?.total_inventory?.toLocaleString()}
-                    sub={stats ? `Units in all locations` : undefined}
+                    title="Active Backlog"
+                    value={stats?.total_backlog != null ? Number(stats.total_backlog).toLocaleString() : '—'}
+                    sub={(stats?.total_backlog ?? 0) > 20 ? 'Above baseline' : 'Normal volume'}
+                    subClass={(stats?.total_backlog ?? 0) > 20 ? 'negative' : 'positive'}
                     loading={statsLoading}
-                    accent="var(--status-info)"
-                />
-                <KpiCard
-                    title="Active Alerts"
-                    value={stats ? Math.max(stats.active_alerts, wsHighCount) : undefined}
-                    sub={stats?.active_alerts > 0 ? 'High-risk predictions (1 h)' : 'No critical alerts'}
-                    subClass={stats?.active_alerts > 0 ? 'negative' : 'positive'}
-                    loading={statsLoading}
-                    accent="var(--status-warning)"
                 />
                 <KpiCard
                     title="High-Risk Warehouses"
-                    value={stats?.high_risk_warehouses}
-                    sub={stats?.high_risk_warehouses > 0 ? 'Overloaded – action needed' : 'All warehouses normal'}
-                    subClass={stats?.high_risk_warehouses > 0 ? 'negative' : 'positive'}
-                    loading={statsLoading}
-                    accent="var(--status-error)"
+                    value={highRisk.length}
+                    sub={highRisk.length > 0 ? 'Requires attention' : 'All nominal'}
+                    subClass={highRisk.length > 0 ? 'negative' : 'positive'}
+                    loading={hrLoading}
+                />
+                <KpiCard
+                    title="High-Risk Events"
+                    value={wsHighCount}
+                    sub="Current stream session"
+                    subClass={wsHighCount > 0 ? 'negative' : 'positive'}
                 />
             </div>
 
-            {/* ── trend charts ── */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '24px' }}>
-
-                {/* Order trend */}
+            {/* ── Telemetry Trends Grid ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginBottom: '20px' }}>
                 <div className="card" style={{ margin: 0 }}>
                     <SectionHeader
-                        title="Order Trend"
-                        sub="Hourly orders – last 24 h"
-                        badge={ordTrend ? `${orderSeries.reduce((a, b) => a + b, 0)} orders` : '…'}
+                        title="Order Ingestion Velocity"
+                        sub="Hourly volume trend"
+                        badge={`${orderSeries.reduce((a, b) => a + b, 0)} total`}
                     />
-                    {ordTrendLoading
-                        ? <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: 12 }}>Loading…</div>
-                        : <SparkLine
-                            data={orderSeries}
-                            color="var(--accent)"
-                            fillColor="rgba(34,139,230,0.08)"
-                            height={80}
-                          />
-                    }
-                    {ordTrend?.trend?.length > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', opacity: 0.55, marginTop: '6px' }}>
-                            <span>{fmtHour(ordTrend.trend[0].hour)}</span>
-                            <span>{fmtHour(ordTrend.trend[ordTrend.trend.length - 1].hour)}</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Inventory trend */}
-                <div className="card" style={{ margin: 0 }}>
-                    <SectionHeader
-                        title="Inventory Trend"
-                        sub="Total units on-hand – last 24 h"
-                        badge={invTrend ? `${(invSeries[invSeries.length - 1] ?? 0).toLocaleString()} now` : '…'}
-                        badgeClass="info"
-                    />
-                    {invTrendLoading
-                        ? <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: 12 }}>Loading…</div>
-                        : <SparkLine
-                            data={invSeries}
-                            color="var(--status-info)"
-                            fillColor="rgba(21,170,191,0.08)"
-                            height={80}
-                          />
-                    }
-                    {invTrend?.trend?.length > 0 && (
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', opacity: 0.55, marginTop: '6px' }}>
-                            <span>{fmtHour(invTrend.trend[0].hour)}</span>
-                            <span>{fmtHour(invTrend.trend[invTrend.trend.length - 1].hour)}</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Warehouse risk chart */}
-                <div className="card" style={{ margin: 0 }}>
-                    <SectionHeader
-                        title="Warehouse Risk"
-                        sub="Avg delay-risk % – last 24 h"
-                        badge={riskItems.length > 0 ? `${riskItems.length} warehouses` : '—'}
-                        badgeClass={riskItems.some(r => r.value >= 70) ? 'error' : 'warning'}
-                    />
-                    {wrhRiskLoading
-                        ? <div style={{ height: 80, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.4, fontSize: 12 }}>Loading…</div>
-                        : <BarChart items={riskItems} colorFn={riskBarColor} />
-                    }
-                </div>
-
-            </div>
-
-            {/* ── high-risk warehouse table ── */}
-            <div className="card" style={{ marginBottom: '24px' }}>
-                <SectionHeader
-                    title="High-Risk Warehouses"
-                    sub="Overloaded — requires immediate attention"
-                    badge={hrLoading ? '…' : (highRisk.length > 0 ? `${highRisk.length} critical` : 'All clear')}
-                    badgeClass={highRisk.length > 0 ? 'error' : 'success'}
-                />
-
-                {hrLoading && (
-                    <p style={{ textAlign: 'center', opacity: 0.5, padding: '24px 0' }}>Loading warehouse data…</p>
-                )}
-
-                {!hrLoading && highRisk.length === 0 && (
-                    <div style={{ textAlign: 'center', padding: '32px', opacity: 0.55 }}>
-                        <div style={{ fontSize: '28px', marginBottom: '8px' }}>✓</div>
-                        <p style={{ margin: 0 }}>All warehouses are operating within normal thresholds.</p>
+                    <div style={{ height: '90px', display: 'flex', alignItems: 'center' }}>
+                        <SparkLine data={orderSeries} color="var(--text-h)" height={70} />
                     </div>
-                )}
+                </div>
 
-                {!hrLoading && highRisk.length > 0 && (
-                    <div className="table-container" style={{ margin: 0, padding: 0 }}>
+                <div className="card" style={{ margin: 0 }}>
+                    <SectionHeader
+                        title="Total Inventory On-Hand"
+                        sub="Global stock level trend"
+                        badge={`${invSeries[invSeries.length - 1] ?? '—'} units`}
+                    />
+                    <div style={{ height: '90px', display: 'flex', alignItems: 'center' }}>
+                        <SparkLine data={invSeries} color="var(--brand-blue)" height={70} />
+                    </div>
+                </div>
+
+                <div className="card" style={{ margin: 0 }}>
+                    <SectionHeader
+                        title="Warehouse Risk Index"
+                        sub="Failure probability (%) — Click bar to view actions"
+                        badge={`${riskItems.length} sites`}
+                    />
+                    <div style={{
+                        height: '90px',
+                        overflowY: 'auto',
+                        overflowX: 'hidden',
+                        paddingRight: '4px',
+                        boxSizing: 'border-box',
+                    }}>
+                        <BarChart
+                            items={riskItems}
+                            onItemClick={(wid) => navigate(`/recommendations?facility=${wid}`)}
+                        />
+                    </div>
+                </div>
+            </div>
+
+            {/* ── High-Risk Facilities & Live Events ── */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '16px' }}>
+                {/* High-Risk Warehouses Table with Direct Action Deep-Links */}
+                <div className="card" style={{ margin: 0 }}>
+                    <SectionHeader
+                        title="High-Risk Facilities"
+                        sub="Active backlogs and capacity constraints — Click facility to view prescribed actions"
+                        badge={highRisk.length}
+                        badgeClass={highRisk.length > 0 ? 'error' : 'success'}
+                    />
+                    <div className="table-container">
                         <table className="data-table">
                             <thead>
                                 <tr>
                                     <th>Warehouse</th>
-                                    <th>Risk %</th>
+                                    <th>Status</th>
                                     <th>Backlog</th>
-                                    <th>Prediction</th>
-                                    <th>Root Cause (SHAP)</th>
-                                    <th>Recommended Action</th>
+                                    <th>Avg Delay Prob</th>
+                                    <th>Action</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {highRisk.map((wh) => (
-                                    <tr key={wh.warehouse_id} style={riskRowStyle(wh.risk_pct)}>
-                                        <td>
-                                            <code style={{ fontFamily: 'var(--mono)', fontWeight: 700 }}>{wh.warehouse_id}</code>
-                                        </td>
-                                        <td>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                <div style={{ width: '60px', background: 'var(--bg-surface-hover)', borderRadius: '4px', overflow: 'hidden', height: '8px' }}>
-                                                    <div style={{ width: `${Math.min(wh.risk_pct, 100)}%`, height: '100%', background: riskBarColor(wh.risk_pct), transition: 'width 0.5s' }} />
-                                                </div>
-                                                <span style={{ color: riskBarColor(wh.risk_pct), fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '13px' }}>
-                                                    {wh.risk_pct}%
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className="badge warning">{wh.backlog_orders} orders</span>
-                                        </td>
-                                        <td style={{ fontSize: '13px' }}>{wh.prediction}</td>
-                                        <td style={{ fontSize: '12px', whiteSpace: 'pre-line', fontFamily: 'var(--mono)', maxWidth: '220px', lineHeight: '1.5' }}>
-                                            {wh.root_cause}
-                                        </td>
-                                        <td style={{ color: 'var(--status-error)', fontWeight: 500, fontSize: '13px', maxWidth: '220px' }}>
-                                            {wh.recommended_action}
+                                {highRisk.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>
+                                            No critical facility risks detected.
                                         </td>
                                     </tr>
-                                ))}
+                                ) : (
+                                    highRisk.map((w) => {
+                                        const delayVal = w.avg_delay_risk_pct ?? w.risk_pct;
+                                        return (
+                                            <tr
+                                                key={w.warehouse_id}
+                                                style={{ cursor: 'pointer' }}
+                                                onClick={() => navigate(`/recommendations?facility=${w.warehouse_id}`)}
+                                                title={`Click to view recommendations for ${w.warehouse_id}`}
+                                            >
+                                                <td style={{ fontWeight: 600, fontFamily: 'var(--mono)', fontSize: '13px', color: 'var(--text-h)' }}>
+                                                    {w.warehouse_id}
+                                                </td>
+                                                <td>
+                                                    <span className={`badge ${riskBadge(w.status)}`}>
+                                                        {w.status}
+                                                    </span>
+                                                </td>
+                                                <td style={{ fontFamily: 'var(--mono)' }}>{w.backlog_orders ?? 0}</td>
+                                                <td>
+                                                    <span style={{
+                                                        fontFamily: 'var(--mono)',
+                                                        fontWeight: 600,
+                                                        color: (delayVal ?? 0) >= 70 ? 'var(--status-error)' : 'var(--status-warning)'
+                                                    }}>
+                                                        {delayVal != null ? `${Number(delayVal).toFixed(1)}%` : '—'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            navigate(`/recommendations?facility=${w.warehouse_id}`);
+                                                        }}
+                                                        className="btn-secondary"
+                                                        style={{ fontSize: '11px', padding: '3px 8px', whiteSpace: 'nowrap' }}
+                                                    >
+                                                        View Actions →
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
                             </tbody>
                         </table>
                     </div>
-                )}
-            </div>
+                </div>
 
-            {/* ── live event feed ── */}
-            <div className="card">
-                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                        <h3 style={{ margin: 0 }}>Live Event Feed</h3>
-                        <p style={{ margin: '2px 0 0', fontSize: '12px', opacity: 0.6 }}>
-                            Kafka → Consumer → ML → SHAP → WebSocket — no refresh needed
-                        </p>
-                    </div>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                        <span className={`badge ${wsConnected ? 'success' : 'warning'}`}
-                              style={wsConnected ? { animation: 'ws-pulse 2s ease-in-out infinite' } : {}}>
-                            {wsConnected ? '● Live' : '○ Offline'}
-                        </span>
+                {/* Real-Time Event Feed with Business-Friendly Language */}
+                <div className="card" style={{ margin: 0 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                        <div>
+                            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: 600 }}>Live Telemetry Stream</h3>
+                            <p style={{ margin: '2px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+                                Real-time operational event stream ({realtimeEvents.length} events logged)
+                            </p>
+                        </div>
                         {realtimeEvents.length > 0 && (
-                            <button onClick={clearEvents} style={{
-                                fontSize: '11px', padding: '4px 10px', borderRadius: '8px',
-                                border: '1px solid var(--border)', background: 'var(--bg-surface-hover)',
-                                color: 'var(--text)', cursor: 'pointer',
-                            }}>Clear</button>
+                            <button
+                                onClick={clearEvents}
+                                className="btn-secondary"
+                                style={{ fontSize: '11px', padding: '3px 8px' }}
+                            >
+                                Clear
+                            </button>
+                        )}
+                    </div>
+
+                    <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        {realtimeEvents.length === 0 ? (
+                            <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
+                                Awaiting incoming Kafka events…
+                            </div>
+                        ) : (
+                            realtimeEvents.slice(0, 15).map((evt, idx) => (
+                                <div
+                                    key={idx}
+                                    style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'space-between',
+                                        padding: '9px 12px',
+                                        background: 'var(--bg-subtle)',
+                                        border: '1px solid var(--border-subtle)',
+                                        borderRadius: 'var(--radius-sm)',
+                                        fontSize: '12px'
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <span className={`badge ${riskBadge(evt.risk)}`} style={{ fontSize: '10px', textTransform: 'uppercase' }}>
+                                            {evt.risk || 'INFO'}
+                                        </span>
+                                        <span style={{ fontWeight: 500, color: 'var(--text-h)' }}>
+                                            {formatEventDescription(evt)}
+                                        </span>
+                                    </div>
+                                    <span style={{ color: 'var(--text-muted)', fontSize: '11px', fontFamily: 'var(--mono)', marginLeft: '8px', whiteSpace: 'nowrap' }}>
+                                        {fmt(evt.timestamp)}
+                                    </span>
+                                </div>
+                            ))
                         )}
                     </div>
                 </div>
-
-                {realtimeEvents.length === 0 ? (
-                    <div style={{ padding: '40px', textAlign: 'center', opacity: 0.55 }}>
-                        <div style={{ fontSize: '32px', marginBottom: '12px' }}>📡</div>
-                        <p style={{ margin: 0 }}>
-                            Waiting for events…<br />
-                            <small>Run: <code>python simulator/erp_simulator.py</code></small>
-                        </p>
-                    </div>
-                ) : (
-                    <div className="table-container" style={{ margin: 0, padding: 0 }}>
-                        <table className="data-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Time</th>
-                                            <th>Event</th>
-                                            <th>Warehouse</th>
-                                            <th>Risk</th>
-                                            <th>Prediction</th>
-                                            <th>Root Cause (SHAP)</th>
-                                            <th>Business Summary (AI) & Recommendation</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {realtimeEvents.map((evt, idx) => (
-                                            <tr key={`${evt.timestamp}-${idx}`} style={{
-                                                animation: idx === 0 ? 'row-in 0.35s ease' : 'none',
-                                                ...(String(evt.risk).toUpperCase() === 'HIGH'
-                                                    ? { borderLeft: '3px solid var(--status-error)', background: 'rgba(250,82,82,0.04)' }
-                                                    : {}),
-                                            }}>
-                                                <td style={{ fontFamily: 'var(--mono)', fontSize: '12px', whiteSpace: 'nowrap', opacity: 0.65 }}>
-                                                    {fmt(evt.timestamp)}
-                                                </td>
-                                                <td><strong>{evt.event}</strong></td>
-                                                <td><code style={{ fontFamily: 'var(--mono)' }}>{evt.warehouse}</code></td>
-                                                <td>
-                                                    <span className={`badge ${riskBadge(evt.risk)}`}>{evt.risk}</span>
-                                                </td>
-                                                <td style={{ fontSize: '13px' }}>{evt.prediction}</td>
-                                                <td style={{ fontSize: '12px', whiteSpace: 'pre-line', fontFamily: 'var(--mono)', maxWidth: '220px' }}>
-                                                    {evt.root_cause}
-                                                </td>
-                                                <td style={{ maxWidth: '300px', fontSize: '13px' }}>
-                                                    {evt.explanation && (
-                                                        <div style={{ marginBottom: '6px', fontWeight: '500', color: 'var(--text-h)' }}>
-                                                            ✨ {evt.explanation}
-                                                        </div>
-                                                    )}
-                                                    <div style={{ 
-                                                        color: String(evt.risk).toUpperCase() === 'HIGH' ? 'var(--status-error)' : 'var(--text)',
-                                                        fontSize: '11px',
-                                                        opacity: evt.explanation ? 0.75 : 1
-                                                    }}>
-                                                        <strong>Action:</strong> {evt.recommendation}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                        </table>
-                    </div>
-                )}
             </div>
-
-            <style>{`
-                @keyframes row-in {
-                    from { opacity: 0; transform: translateY(-6px); }
-                    to   { opacity: 1; transform: translateY(0); }
-                }
-                @keyframes ws-pulse {
-                    0%, 100% { opacity: 1; }
-                    50%       { opacity: 0.5; }
-                }
-            `}</style>
         </div>
     );
 };
