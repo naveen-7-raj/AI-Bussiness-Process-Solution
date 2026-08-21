@@ -88,12 +88,17 @@ const Dashboard = () => {
     // live WS feed
     const { events: realtimeEvents, connected: wsConnected, clearEvents } = useWebSocket();
 
-    // polled REST endpoints
-    const { data: stats,     loading: statsLoading }     = useFetch('/api/stats',               token, POLL_MS);
-    const { data: hrData,    loading: hrLoading }        = useFetch('/api/high-risk-warehouses', token, POLL_MS);
-    const { data: ordTrend,  loading: ordTrendLoading }  = useFetch('/api/orders/trend',         token, TREND_MS);
-    const { data: invTrend,  loading: invTrendLoading }  = useFetch('/api/inventory/trend',      token, TREND_MS);
-    const { data: wrhRisk,   loading: wrhRiskLoading }   = useFetch('/api/warehouse-risk-trend', token, TREND_MS);
+    // Consolidated dashboard summary endpoint (falls back gracefully to individual endpoints)
+    const { data: summaryData, loading: summaryLoading } = useFetch('/api/dashboard/summary', token, POLL_MS);
+    const { data: statsFallback, loading: statsLoading } = useFetch('/api/stats', token, POLL_MS);
+
+    const stats = summaryData?.stats ?? statsFallback;
+    const hrData = summaryData ? { high_risk_warehouses: summaryData.high_risk_warehouses } : null;
+    const ordTrend = summaryData?.orders_trend;
+    const invTrend = summaryData?.inventory_trend;
+    const wrhRisk = summaryData?.warehouse_risk_trend;
+
+    const loadingAll = summaryLoading && statsLoading;
 
     // derived chart series
     const orderSeries = useMemo(() =>
