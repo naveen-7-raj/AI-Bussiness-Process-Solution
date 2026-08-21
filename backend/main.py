@@ -1159,6 +1159,9 @@ async def record_audit_log(
 
 # --- Routes ---
 @app.websocket("/api/ws")
+@app.websocket("/api/ws/")
+@app.websocket("/ws")
+@app.websocket("/ws/")
 async def websocket_endpoint(websocket: WebSocket):
     await manager.connect(websocket)
     try:
