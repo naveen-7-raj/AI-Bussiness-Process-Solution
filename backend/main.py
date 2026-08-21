@@ -1166,6 +1166,11 @@ async def websocket_endpoint(websocket: WebSocket):
         print(f"[WS] WebSocket error: {e}")
         manager.disconnect(websocket)
 
+@app.get("/")
+async def root():
+    return {"status": "operational", "service": "NEXORA API"}
+
+
 @app.get("/health")
 async def health_check():
     db_status = "disconnected"
