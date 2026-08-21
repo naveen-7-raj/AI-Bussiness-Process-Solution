@@ -6,6 +6,7 @@ xgboost
 shap
 pyjwt
 passlib[bcrypt]
+bcrypt==4.0.1
 python-dotenv
 pydantic
 email-validator

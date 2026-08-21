@@ -94,7 +94,13 @@ async def _broadcast_worker():
 
 
 cors_origins_env = os.getenv("CORS_ORIGINS", "*")
-allowed_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()] if cors_origins_env != "*" else ["*"]
+if cors_origins_env == "*":
+    allowed_origins = ["*"]
+else:
+    allowed_origins = [o.strip().rstrip("/") for o in cors_origins_env.split(",") if o.strip()]
+    vercel_prod = "https://ai-bussiness-process-solution-delta.vercel.app"
+    if vercel_prod not in allowed_origins:
+        allowed_origins.append(vercel_prod)
 
 app.add_middleware(
     CORSMiddleware,
@@ -1187,24 +1193,38 @@ async def health_check():
 async def register(req: RegisterRequest):
     conn = await asyncpg.connect(DATABASE_URL)
     try:
+        company_name = req.company_name.strip() if req.company_name else "Default Company"
         company_id = await conn.fetchval(
             "INSERT INTO companies (name) VALUES ($1) ON CONFLICT (name) DO UPDATE SET name=EXCLUDED.name RETURNING id",
-            req.company_name,
+            company_name,
         )
+        if not company_id:
+            company_id = await conn.fetchval("SELECT id FROM companies WHERE name = $1", company_name) or 1
+
         hashed_password = get_password_hash(req.password)
-        assigned_role = determine_default_role(req.email)
+        assigned_role = determine_default_role(req.email.strip().lower())
         await conn.execute(
             "INSERT INTO users (company_id, email, hashed_password, role) VALUES ($1, $2, $3, $4)",
             company_id,
-            req.email,
+            req.email.strip().lower(),
             hashed_password,
             assigned_role,
         )
-        # Part 1: Send registration welcome email to the newly registered user's own email (non-blocking)
-        send_registration_email(req.email)
+        try:
+            send_registration_email(req.email.strip().lower())
+        except Exception as e:
+            print(f"[Register Email Warning] {e}")
+
         return {"msg": "Registered successfully"}
     except asyncpg.exceptions.UniqueViolationError:
         raise HTTPException(status_code=400, detail="Email already registered")
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"[Register Endpoint Error] {exc}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"Registration error: {str(exc)}")
     finally:
         await conn.close()
 
