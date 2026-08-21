@@ -231,7 +231,7 @@ const Dashboard = () => {
                     value={highRisk.length}
                     sub={highRisk.length > 0 ? 'Requires attention' : 'All nominal'}
                     subClass={highRisk.length > 0 ? 'negative' : 'positive'}
-                    loading={hrLoading}
+                    loading={summaryLoading}
                 />
                 <KpiCard
                     title="High-Risk Events"
