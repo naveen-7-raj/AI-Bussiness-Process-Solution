@@ -97,6 +97,8 @@ app.add_middleware(
 )
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/app_db")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "fallback_secret")
 ALGORITHM = "HS256"
 KAFKA_BOOTSTRAP_SERVERS = os.getenv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092").split(",")
