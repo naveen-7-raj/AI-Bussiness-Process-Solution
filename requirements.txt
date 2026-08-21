@@ -8,6 +8,7 @@ pyjwt
 passlib[bcrypt]
 python-dotenv
 pydantic
+email-validator
 requests
 google-auth
 httpx
