@@ -74,23 +74,11 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 def broadcast_update_to_clients(data: dict):
-    """Thread-safe: push a message onto the queue for the async broadcaster."""
-    if _broadcast_queue is not None and main_event_loop is not None and main_event_loop.is_running():
-        # put_nowait is safe to call from any thread on an asyncio.Queue
-        main_event_loop.call_soon_threadsafe(_broadcast_queue.put_nowait, data)
+    """Thread-safe: schedule WebSocket broadcast directly on main asyncio event loop."""
+    if main_event_loop is not None and main_event_loop.is_running():
+        asyncio.run_coroutine_threadsafe(manager.broadcast(data), main_event_loop)
     else:
-        print("[WS] Broadcast queue not ready. Message dropped.")
-
-
-async def _broadcast_worker():
-    """Async task that drains the queue and sends messages to all WS clients."""
-    while True:
-        try:
-            data = await _broadcast_queue.get()
-            await manager.broadcast(data)
-            _broadcast_queue.task_done()
-        except Exception as exc:
-            print(f"[WS] Broadcast worker error: {exc}")
+        print("[WS] Main event loop not ready. Message dropped.")
 
 
 cors_origins_env = os.getenv("CORS_ORIGINS", "*")
