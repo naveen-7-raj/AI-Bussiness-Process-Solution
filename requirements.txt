@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+asyncpg
+kafka-python
+xgboost
+shap
+pyjwt
+passlib[bcrypt]
+python-dotenv
+pydantic
+requests
+google-auth
+httpx
+gunicorn
