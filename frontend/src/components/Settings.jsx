@@ -17,7 +17,7 @@ const TIMEZONES = [
 ];
 
 const Settings = () => {
-    const { logout, token } = useAuth();
+    const { logout, token, user } = useAuth();
     const [userEmail, setUserEmail] = useState('');
     const [emailOption, setEmailOption] = useState('All Alerts');
     const [timezone, setTimezone] = useState('Asia/Kolkata');
