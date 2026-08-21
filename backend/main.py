@@ -1158,6 +1158,15 @@ async def record_audit_log(
 
 
 # --- Routes ---
+@app.get("/api/ws")
+@app.get("/ws")
+async def websocket_info():
+    return {
+        "status": "online",
+        "service": "NEXORA WebSocket Gateway",
+        "active_connections": len(manager.active_connections)
+    }
+
 @app.websocket("/api/ws")
 @app.websocket("/api/ws/")
 @app.websocket("/ws")
