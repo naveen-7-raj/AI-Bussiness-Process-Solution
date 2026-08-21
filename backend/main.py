@@ -25,8 +25,16 @@ from google.oauth2 import id_token as google_id_token
 from google.auth.transport import requests as google_requests
 
 from ml.predict import predict_delay
-from recommendations_engine import generate_recommendations, Recommendation
-from llm_layer import generate_business_explanation
+try:
+    from backend.recommendations_engine import generate_recommendations, Recommendation
+except ImportError:
+    from recommendations_engine import generate_recommendations, Recommendation
+
+try:
+    from backend.llm_layer import generate_business_explanation
+except ImportError:
+    from llm_layer import generate_business_explanation
+
 try:
     from backend.email_service import send_email
 except ImportError:
