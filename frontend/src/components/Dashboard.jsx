@@ -91,12 +91,16 @@ const Dashboard = () => {
     // Consolidated dashboard summary endpoint (falls back gracefully to individual endpoints)
     const { data: summaryData, loading: summaryLoading } = useFetch('/api/dashboard/summary', token, POLL_MS);
     const { data: statsFallback, loading: statsLoading } = useFetch('/api/stats', token, POLL_MS);
+    const { data: hrFallback } = useFetch(!summaryData ? '/api/high-risk-warehouses' : null, token, POLL_MS);
+    const { data: ordTrendFallback } = useFetch(!summaryData ? '/api/orders/trend' : null, token, POLL_MS);
+    const { data: invTrendFallback } = useFetch(!summaryData ? '/api/inventory/trend' : null, token, POLL_MS);
+    const { data: wrhRiskFallback } = useFetch(!summaryData ? '/api/warehouse-risk-trend' : null, token, POLL_MS);
 
     const stats = summaryData?.stats ?? statsFallback;
-    const hrData = summaryData ? { high_risk_warehouses: summaryData.high_risk_warehouses } : null;
-    const ordTrend = summaryData?.orders_trend;
-    const invTrend = summaryData?.inventory_trend;
-    const wrhRisk = summaryData?.warehouse_risk_trend;
+    const hrData = summaryData ? { high_risk_warehouses: summaryData.high_risk_warehouses } : hrFallback;
+    const ordTrend = summaryData?.orders_trend ?? ordTrendFallback;
+    const invTrend = summaryData?.inventory_trend ?? invTrendFallback;
+    const wrhRisk = summaryData?.warehouse_risk_trend ?? wrhRiskFallback;
 
     const loadingAll = summaryLoading && statsLoading;
 
