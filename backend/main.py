@@ -131,12 +131,12 @@ security = HTTPBearer()
 
 class RegisterRequest(BaseModel):
     company_name: str
-    email: EmailStr
+    email: str
     password: str
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
