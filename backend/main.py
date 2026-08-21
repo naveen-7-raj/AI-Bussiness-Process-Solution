@@ -3172,6 +3172,26 @@ async def run_new_model_prediction(current_user: dict = Depends(get_current_user
             warehouses = await conn.fetch(
                 "SELECT warehouse_id, status, backlog_orders, avg_processing_time_sec FROM warehouses ORDER BY warehouse_id ASC"
             )
+            if not warehouses:
+                default_whs = [
+                    ('WH01', 'OVERLOADED', 45, 2.15),
+                    ('WH02', 'OVERLOADED', 43, 3.95),
+                    ('WH03', 'NORMAL', 27, 4.97),
+                    ('WH04', 'OVERLOADED', 47, 2.75),
+                    ('WH05', 'NORMAL', 39, 2.05),
+                ]
+                for wid, st, bl, proc in default_whs:
+                    await conn.execute(
+                        """
+                        INSERT INTO warehouses (warehouse_id, status, backlog_orders, avg_processing_time_sec, last_updated)
+                        VALUES ($1, $2, $3, $4, NOW())
+                        ON CONFLICT (warehouse_id) DO NOTHING
+                        """,
+                        wid, st, bl, proc
+                    )
+                warehouses = await conn.fetch(
+                    "SELECT warehouse_id, status, backlog_orders, avg_processing_time_sec FROM warehouses ORDER BY warehouse_id ASC"
+                )
             now_ts = datetime.now(timezone.utc)
             results = []
 
