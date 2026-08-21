@@ -269,6 +269,19 @@ async def initialize_database() -> None:
             ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
             ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
+            CREATE TABLE IF NOT EXISTS access_requests (
+                id SERIAL PRIMARY KEY,
+                user_id INT REFERENCES users(id) ON DELETE CASCADE,
+                user_email VARCHAR(255) NOT NULL,
+                requested_role VARCHAR(50) DEFAULT 'admin',
+                reason TEXT NOT NULL,
+                status VARCHAR(50) DEFAULT 'pending',
+                duration_days INT DEFAULT 0,
+                access_expires_at TIMESTAMPTZ DEFAULT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            );
+
             ALTER TABLE access_requests ADD COLUMN IF NOT EXISTS duration_days INT DEFAULT 0;
             ALTER TABLE access_requests ADD COLUMN IF NOT EXISTS access_expires_at TIMESTAMPTZ DEFAULT NULL;
 
@@ -292,17 +305,6 @@ async def initialize_database() -> None:
                 expires_at TIMESTAMPTZ NOT NULL,
                 attempts INT DEFAULT 0,
                 created_at TIMESTAMPTZ DEFAULT NOW()
-            );
-
-            CREATE TABLE IF NOT EXISTS access_requests (
-                id SERIAL PRIMARY KEY,
-                user_id INT REFERENCES users(id) ON DELETE CASCADE,
-                user_email VARCHAR(255) NOT NULL,
-                requested_role VARCHAR(50) DEFAULT 'admin',
-                reason TEXT NOT NULL,
-                status VARCHAR(50) DEFAULT 'pending',
-                created_at TIMESTAMPTZ DEFAULT NOW(),
-                updated_at TIMESTAMPTZ DEFAULT NOW()
             );
 
             CREATE TABLE IF NOT EXISTS rbac_audit_logs (
