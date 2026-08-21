@@ -348,6 +348,44 @@ async def initialize_database() -> None:
             WHERE root_cause IS NULL OR root_cause = '';
             """
         )
+
+        # Seed baseline inventory if inventory table is empty
+        inv_count = await conn.fetchval("SELECT COUNT(*) FROM inventory")
+        if inv_count == 0:
+            import random
+            warehouse_ids = ['WH01', 'WH02', 'WH03', 'WH04', 'WH05']
+            product_ids = [f'P{str(i).zfill(3)}' for i in range(1, 21)]
+            now_ts = datetime.now(timezone.utc)
+            for wh in warehouse_ids:
+                for prod in product_ids:
+                    qty = random.randint(120, 500)
+                    await conn.execute(
+                        """
+                        INSERT INTO inventory (warehouse_id, product_id, available_quantity, updated_at)
+                        VALUES ($1, $2, $3, $4)
+                        ON CONFLICT (warehouse_id, product_id) DO NOTHING
+                        """,
+                        wh, prod, qty, now_ts
+                    )
+
+        # Seed baseline orders if orders table is empty
+        orders_count = await conn.fetchval("SELECT COUNT(*) FROM orders")
+        if orders_count == 0:
+            import random
+            now_ts = datetime.now(timezone.utc)
+            for i in range(1, 101):
+                order_id = f"ORD-{1000+i:07d}"
+                wh = f"WH0{(i % 5) + 1}"
+                prod = f"P{(i % 20) + 1:03d}"
+                qty = random.randint(5, 50)
+                await conn.execute(
+                    """
+                    INSERT INTO orders (order_id, warehouse_id, product_id, quantity, status, created_at)
+                    VALUES ($1, $2, $3, $4, 'CREATED', $5)
+                    ON CONFLICT (order_id) DO NOTHING
+                    """,
+                    order_id, wh, prod, qty, now_ts
+                )
     finally:
         await conn.close()
 

@@ -18,7 +18,14 @@ def load_model():
     global _model
     if _model is None:
         if not MODEL_PATH.exists():
-            raise FileNotFoundError(f"Saved model not found at {MODEL_PATH}. Run training first.")
+            try:
+                from ml.train import train_and_save_model
+                print(f"[ML] Model binary missing at {MODEL_PATH}, auto-generating...")
+                train_and_save_model()
+            except Exception as e:
+                print(f"[ML] Auto-training model failed: {e}")
+                if not MODEL_PATH.exists():
+                    raise FileNotFoundError(f"Saved model not found at {MODEL_PATH}. Run training first.")
         _model = joblib.load(MODEL_PATH)
     return _model
 
