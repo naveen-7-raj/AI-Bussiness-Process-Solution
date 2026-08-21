@@ -3166,62 +3166,68 @@ async def run_new_model_prediction(current_user: dict = Depends(get_current_user
     for all active warehouses and returns the latest prediction results, risk levels,
     and SHAP root causes.
     """
-    conn = await asyncpg.connect(DATABASE_URL)
     try:
-        warehouses = await conn.fetch(
-            "SELECT warehouse_id, status, backlog_orders, avg_processing_time_sec FROM warehouses ORDER BY warehouse_id ASC"
-        )
-        now_ts = datetime.now(timezone.utc)
-        results = []
-
-        for wh in warehouses:
-            wid = wh["warehouse_id"]
-            # Find representative product or lowest stock state
-            inv_row = await conn.fetchrow(
-                "SELECT available_quantity, product_id FROM inventory WHERE warehouse_id = $1 ORDER BY available_quantity ASC LIMIT 1",
-                wid
+        conn = await asyncpg.connect(DATABASE_URL)
+        try:
+            warehouses = await conn.fetch(
+                "SELECT warehouse_id, status, backlog_orders, avg_processing_time_sec FROM warehouses ORDER BY warehouse_id ASC"
             )
-            features = await build_ml_feature_row(conn, {
-                "warehouse_id": wid,
-                "product_id": inv_row["product_id"] if inv_row else "P001",
-                "backlog_orders": wh["backlog_orders"],
-                "avg_processing_time_sec": float(wh["avg_processing_time_sec"])
-            })
+            now_ts = datetime.now(timezone.utc)
+            results = []
 
-            pred_res = predict_delay(features)
-            risk_level = str(pred_res.get("risk_level", "low")).upper()
-            exps = pred_res.get("explanations", [])
-            
-            # Persist to predictions table
-            await conn.execute(
-                """
-                INSERT INTO predictions (warehouse_id, product_id, prediction_type, prediction_value, created_at)
-                VALUES ($1, $2, 'delay_risk', $3, $4)
-                """,
-                wid,
-                inv_row["product_id"] if inv_row else None,
-                float(pred_res.get("delay_probability", 0.0)),
-                now_ts
-            )
+            for wh in warehouses:
+                wid = wh["warehouse_id"]
+                # Find representative product or lowest stock state
+                inv_row = await conn.fetchrow(
+                    "SELECT available_quantity, product_id FROM inventory WHERE warehouse_id = $1 ORDER BY available_quantity ASC LIMIT 1",
+                    wid
+                )
+                features = await build_ml_feature_row(conn, {
+                    "warehouse_id": wid,
+                    "product_id": inv_row["product_id"] if inv_row else "P001",
+                    "backlog_orders": wh["backlog_orders"],
+                    "avg_processing_time_sec": float(wh["avg_processing_time_sec"])
+                })
 
-            results.append({
-                "warehouse_id": wid,
-                "delay_probability": pred_res.get("delay_probability", 0.0),
-                "delay_percentage": f"{pred_res.get('delay_probability', 0.0) * 100:.1f}%",
-                "predicted_delay_minutes": pred_res.get("predicted_delay_minutes", 0.0),
-                "risk_level": risk_level,
-                "features": features,
-                "explanations": exps
-            })
+                pred_res = predict_delay(features)
+                risk_level = str(pred_res.get("risk_level", "low")).upper()
+                exps = pred_res.get("explanations", [])
+                
+                # Persist to predictions table
+                await conn.execute(
+                    """
+                    INSERT INTO predictions (warehouse_id, product_id, prediction_type, prediction_value, created_at)
+                    VALUES ($1, $2, 'delay_risk', $3, $4)
+                    """,
+                    wid,
+                    inv_row["product_id"] if inv_row else None,
+                    float(pred_res.get("delay_probability", 0.0)),
+                    now_ts
+                )
 
-        return {
-            "status": "success",
-            "message": "XGBoost + SHAP prediction pipeline executed successfully across all active facilities",
-            "timestamp": now_ts.isoformat(),
-            "predictions": results
-        }
-    finally:
-        await conn.close()
+                results.append({
+                    "warehouse_id": wid,
+                    "delay_probability": pred_res.get("delay_probability", 0.0),
+                    "delay_percentage": f"{pred_res.get('delay_probability', 0.0) * 100:.1f}%",
+                    "predicted_delay_minutes": pred_res.get("predicted_delay_minutes", 0.0),
+                    "risk_level": risk_level,
+                    "features": features,
+                    "explanations": exps
+                })
+
+            return {
+                "status": "success",
+                "message": "XGBoost + SHAP prediction pipeline executed successfully across all active facilities",
+                "timestamp": now_ts.isoformat(),
+                "predictions": results
+            }
+        finally:
+            await conn.close()
+    except HTTPException:
+        raise
+    except Exception as exc:
+        print(f"[Predictions Endpoint Error] {exc}")
+        raise HTTPException(status_code=500, detail=f"Prediction engine error: {str(exc)}")
 
 
 @app.post("/api/copilot/chat")
