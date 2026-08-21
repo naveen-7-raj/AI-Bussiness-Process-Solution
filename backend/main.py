@@ -2986,7 +2986,7 @@ async def create_order(req: CreateOrderRequest, current_user: dict = Depends(get
     conn = await asyncpg.connect(DATABASE_URL)
     try:
         order_id = f"ORD-{int(time.time()*1000)%10000000:07d}"
-        now_ts = datetime.datetime.now(datetime.timezone.utc)
+        now_ts = datetime.now(timezone.utc)
 
         # 1. Check & decrement inventory
         inv_row = await conn.fetchrow(
@@ -3092,7 +3092,7 @@ async def sync_erp(current_user: dict = Depends(get_current_user)):
         import random
         warehouse_ids = ['WH01', 'WH02', 'WH03', 'WH04', 'WH05']
         product_ids = [f'P{str(i).zfill(3)}' for i in range(1, 21)]
-        now_ts = datetime.datetime.now(datetime.timezone.utc)
+        now_ts = datetime.now(timezone.utc)
         synced_count = 0
 
         for wh in warehouse_ids:
@@ -3127,7 +3127,7 @@ async def add_warehouse(req: AddWarehouseRequest, current_user: dict = Depends(g
     """
     conn = await asyncpg.connect(DATABASE_URL)
     try:
-        now_ts = datetime.datetime.now(datetime.timezone.utc)
+        now_ts = datetime.now(timezone.utc)
         status = "OVERLOADED" if req.backlog_orders >= 20 else "NORMAL"
 
         await conn.execute(
@@ -3171,7 +3171,7 @@ async def run_new_model_prediction(current_user: dict = Depends(get_current_user
         warehouses = await conn.fetch(
             "SELECT warehouse_id, status, backlog_orders, avg_processing_time_sec FROM warehouses ORDER BY warehouse_id ASC"
         )
-        now_ts = datetime.datetime.now(datetime.timezone.utc)
+        now_ts = datetime.now(timezone.utc)
         results = []
 
         for wh in warehouses:
