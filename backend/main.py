@@ -1713,7 +1713,7 @@ async def get_dashboard():
             "status": "operational",
             "total_facilities": warehouses[0]["count"] if warehouses else 0,
             "total_inventory": total_inventory or 0,
-            "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     finally:
         await conn.close()
