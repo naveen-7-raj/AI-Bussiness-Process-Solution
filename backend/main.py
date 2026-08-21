@@ -997,6 +997,77 @@ def kafka_consumer_loop() -> None:
             time.sleep(5)
 
 
+def internal_event_simulator_loop():
+    """Background daemon thread that continuously generates operational business telemetry
+    and dispatches events through process_kafka_event to feed database and live WebSockets.
+    """
+    time.sleep(5)
+    print("[EVENT SIMULATOR] Continuous telemetry event engine started.")
+    warehouse_ids = ['WH01', 'WH02', 'WH03', 'WH04', 'WH05']
+    product_ids = [f'P{str(i).zfill(3)}' for i in range(1, 21)]
+
+    while True:
+        try:
+            scenario = random.choice([
+                'NORMAL', 'NORMAL', 'NORMAL',
+                'DEMAND_SPIKE',
+                'INVENTORY_SHORTAGE', 'INVENTORY_SHORTAGE',
+                'WAREHOUSE_OVERLOAD'
+            ])
+            wh = random.choice(warehouse_ids)
+            prod = random.choice(product_ids)
+            now_str = datetime.now(timezone.utc).isoformat()
+
+            if scenario == 'NORMAL':
+                order_id = f"ORD-{random.randint(100000, 999999)}"
+                evt = {
+                    "event_type": "order_created",
+                    "timestamp": now_str,
+                    "order_id": order_id,
+                    "warehouse_id": wh,
+                    "product_id": prod,
+                    "quantity": random.randint(1, 5)
+                }
+                asyncio.run(process_kafka_event("orders", evt))
+
+            elif scenario == 'DEMAND_SPIKE':
+                order_id = f"ORD-{random.randint(100000, 999999)}"
+                evt = {
+                    "event_type": "demand_spike",
+                    "timestamp": now_str,
+                    "order_id": order_id,
+                    "warehouse_id": wh,
+                    "product_id": prod,
+                    "quantity": random.randint(25, 60)
+                }
+                asyncio.run(process_kafka_event("orders", evt))
+
+            elif scenario == 'INVENTORY_SHORTAGE':
+                evt = {
+                    "event_type": "inventory_shortage",
+                    "timestamp": now_str,
+                    "warehouse_id": wh,
+                    "product_id": prod,
+                    "available_quantity": random.randint(0, 5)
+                }
+                asyncio.run(process_kafka_event("inventory", evt))
+
+            elif scenario == 'WAREHOUSE_OVERLOAD':
+                evt = {
+                    "event_type": "warehouse_overload",
+                    "timestamp": now_str,
+                    "warehouse_id": wh,
+                    "backlog_orders": random.randint(30, 65),
+                    "avg_processing_time_sec": round(random.uniform(3.5, 6.0), 2)
+                }
+                asyncio.run(process_kafka_event("warehouse", evt))
+
+        except Exception as exc:
+            print(f"[EVENT SIMULATOR ERROR] {exc}")
+
+        time.sleep(4)
+
+
 # --- DB Initialization ---
 @app.on_event("startup")
 async def startup():
@@ -1007,7 +1078,8 @@ async def startup():
     asyncio.create_task(_broadcast_worker())
     await initialize_database()
     threading.Thread(target=kafka_consumer_loop, daemon=True).start()
-    print("[STARTUP] WebSocket broadcast worker started.")
+    threading.Thread(target=internal_event_simulator_loop, daemon=True).start()
+    print("[STARTUP] Telemetry event engine & WebSocket broadcast worker started.")
 
 
 # --- Auth Utils ---
