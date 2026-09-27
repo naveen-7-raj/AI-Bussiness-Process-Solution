@@ -108,24 +108,30 @@ class SimpleTTLCache:
 ttl_cache = SimpleTTLCache(ttl_seconds=5.0)
 
 
-cors_origins_env = os.getenv("CORS_ORIGINS", "*")
-if cors_origins_env == "*":
-    allowed_origins = ["*"]
-else:
-    allowed_origins = [o.strip().rstrip("/") for o in cors_origins_env.split(",") if o.strip()]
-    vercel_prod = "https://ai-bussiness-process-solution-delta.vercel.app"
-    if vercel_prod not in allowed_origins:
-        allowed_origins.append(vercel_prod)
-    for dev_origin in ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]:
-        if dev_origin not in allowed_origins:
-            allowed_origins.append(dev_origin)
+# Allowed CORS origins for production and local development
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "https://ai-bussiness-process-solution-delta.vercel.app",
+]
+
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+allowed_origins = list(DEFAULT_ALLOWED_ORIGINS)
+if cors_origins_env and cors_origins_env.strip() != "*":
+    for o in cors_origins_env.split(","):
+        trimmed = o.strip().rstrip("/")
+        if trimmed and trimmed not in allowed_origins:
+            allowed_origins.append(trimmed)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/app_db")
