@@ -16,27 +16,24 @@ const WAREHOUSE_NAMES = {
 const RISK_CONFIG = {
     high: {
         color: 'var(--status-error)',
-        bg: 'rgba(250, 82, 82, 0.08)',
-        border: 'rgba(250, 82, 82, 0.35)',
+        bg: 'rgba(250, 82, 82, 0.05)',
+        border: 'rgba(250, 82, 82, 0.25)',
         badgeClass: 'error',
         label: 'High Risk',
-        icon: '⚠',
     },
     medium: {
         color: 'var(--status-warning)',
-        bg: 'rgba(245, 159, 0, 0.08)',
-        border: 'rgba(245, 159, 0, 0.35)',
+        bg: 'rgba(245, 159, 0, 0.05)',
+        border: 'rgba(245, 159, 0, 0.25)',
         badgeClass: 'warning',
         label: 'Medium Risk',
-        icon: '◆',
     },
     low: {
         color: 'var(--status-info)',
-        bg: 'rgba(21, 170, 191, 0.08)',
-        border: 'rgba(21, 170, 191, 0.35)',
+        bg: 'rgba(21, 170, 191, 0.05)',
+        border: 'rgba(21, 170, 191, 0.25)',
         badgeClass: 'info',
         label: 'Low Risk',
-        icon: '●',
     },
 };
 
@@ -342,15 +339,23 @@ const Recommendations = () => {
             )}
 
             {/* Empty state */}
+            {/* Empty state */}
             {!loading && !error && filteredRecs.length === 0 && (
-                <div className="card" style={{ textAlign: 'center', padding: '48px 20px' }}>
-                    <div style={{ fontSize: '32px', marginBottom: '12px', opacity: 0.4 }}>✓</div>
-                    <h3 style={{ marginBottom: '8px' }}>No Tasks in this view</h3>
-                    <p style={{ margin: 0, color: 'var(--text)', opacity: 0.6 }}>
-                        {facilityParam
-                            ? `No recommendation tasks found matching facility ${facilityParam} with status ${statusFilter}.`
-                            : 'No recommendation tasks currently match the selected status filter.'}
-                    </p>
+                <div className="card">
+                    <div className="empty-state">
+                        <div className="empty-state-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                            </svg>
+                        </div>
+                        <div className="empty-state-title">No Prescriptive Tasks Found</div>
+                        <p className="empty-state-desc">
+                            {facilityParam
+                                ? `No operational recommendations found for facility ${facilityParam} under status ${statusFilter}.`
+                                : `No recommendation tasks currently match the "${statusFilter}" filter.`}
+                        </p>
+                    </div>
                 </div>
             )}
 
@@ -374,8 +379,8 @@ const Recommendations = () => {
                         {/* 1. Recommended Action Header */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                <span style={{ fontSize: '18px' }}>{config.icon}</span>
-                                <h3 style={{ margin: 0, color: config.color }}>
+                                <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: config.color, display: 'inline-block' }} />
+                                <h3 style={{ margin: 0, color: 'var(--text-h)', fontSize: '15px' }}>
                                     {rec.recommended_action}
                                 </h3>
                             </div>
@@ -538,7 +543,7 @@ const Recommendations = () => {
                                             fontWeight: 600,
                                         }}
                                     >
-                                        ⚡ Verify Telemetry
+                                        Verify Telemetry
                                     </button>
                                 )}
                                 {statusKey === 'VERIFIED' && (

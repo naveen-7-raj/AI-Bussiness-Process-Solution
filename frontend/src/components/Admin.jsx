@@ -120,15 +120,15 @@ const Admin = () => {
             });
             if (res.ok) {
                 const data = await res.json();
-                setFeedbackBanner({ type: 'success', text: `✨ ${data.message}` });
+                setFeedbackBanner({ type: 'success', text: `✓ ${data.message}` });
                 setTimeout(() => setFeedbackBanner(null), 5000);
                 refreshStats();
             } else {
                 const err = await res.json();
-                setFeedbackBanner({ type: 'error', text: err.detail || 'Failed to trigger demo event.' });
+                setFeedbackBanner({ type: 'error', text: err.detail || 'Failed to dispatch test telemetry.' });
             }
         } catch (e) {
-            setFeedbackBanner({ type: 'error', text: 'Network error triggering demo event.' });
+            setFeedbackBanner({ type: 'error', text: 'Network error dispatching test telemetry.' });
         } finally {
             setIsTriggeringDemo(false);
         }
@@ -260,16 +260,15 @@ const Admin = () => {
                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {isSuperAdmin && (
                         <button
-                            className="button button-primary"
+                            className="btn-danger btn-sm"
                             onClick={handleTriggerDemoRisk}
                             disabled={isTriggeringDemo}
-                            style={{ fontSize: '12px', padding: '6px 12px', background: 'var(--status-error, #dc2626)', borderColor: 'var(--status-error, #dc2626)' }}
                         >
-                            {isTriggeringDemo ? '⌛ Dispatching...' : '⚡ Trigger Test Risk Alert'}
+                            {isTriggeringDemo ? 'Dispatching...' : 'Dispatch Test Anomaly Event'}
                         </button>
                     )}
-                    <button className="button button-secondary" onClick={() => { refreshStats(); refreshUsers(); }} style={{ fontSize: '12px', padding: '6px 12px' }}>
-                        ⟳ Refresh Directory
+                    <button className="btn-secondary btn-sm" onClick={() => { refreshStats(); refreshUsers(); }}>
+                        Refresh Directory
                     </button>
                 </div>
             </div>

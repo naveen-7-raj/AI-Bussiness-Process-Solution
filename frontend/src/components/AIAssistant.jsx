@@ -99,17 +99,14 @@ const AIAssistant = () => {
                     <button
                         key={idx}
                         onClick={() => { setInput(q); }}
+                        className="btn-secondary btn-sm"
                         style={{
-                            background: 'var(--bg-surface)',
-                            border: '1px solid var(--border)',
-                            color: 'var(--text)',
-                            fontSize: '12px',
-                            padding: '6px 12px',
                             borderRadius: '16px',
-                            cursor: 'pointer'
+                            fontWeight: 400,
+                            color: 'var(--text)'
                         }}
                     >
-                        💬 {q}
+                        {q}
                     </button>
                 ))}
             </div>
@@ -128,27 +125,28 @@ const AIAssistant = () => {
                         >
                             <div
                                 style={{
-                                    width: '32px',
-                                    height: '32px',
-                                    borderRadius: '50%',
-                                    backgroundColor: m.role === 'user' ? 'var(--text)' : 'var(--accent)',
+                                    width: '30px',
+                                    height: '30px',
+                                    borderRadius: '6px',
+                                    backgroundColor: m.role === 'user' ? 'var(--text)' : 'var(--text-h)',
                                     color: 'white',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    fontWeight: 'bold',
-                                    fontSize: '13px',
-                                    flexShrink: 0
+                                    fontWeight: 700,
+                                    fontSize: '11px',
+                                    flexShrink: 0,
+                                    letterSpacing: '-0.5px'
                                 }}
                             >
-                                {m.role === 'user' ? 'You' : 'AI'}
+                                {m.role === 'user' ? 'OP' : 'NX'}
                             </div>
                             <div
                                 style={{
                                     backgroundColor: m.role === 'user' ? 'var(--accent-bg)' : 'var(--bg-surface)',
-                                    padding: '14px 18px',
-                                    borderRadius: '8px',
-                                    border: `1px solid ${m.role === 'user' ? 'var(--accent-border)' : 'var(--border)'}`,
+                                    padding: '12px 16px',
+                                    borderRadius: 'var(--radius-md)',
+                                    border: `1px solid ${m.role === 'user' ? 'var(--accent-border, var(--border))' : 'var(--border)'}`,
                                     maxWidth: '80%',
                                     whiteSpace: 'pre-line',
                                     lineHeight: '1.5'
@@ -158,8 +156,9 @@ const AIAssistant = () => {
                                     {m.text}
                                 </p>
                                 {m.source && (
-                                    <div style={{ marginTop: '8px', fontSize: '11px', opacity: 0.6 }}>
-                                        ✦ Grounded via {m.source}
+                                    <div style={{ marginTop: '8px', fontSize: '11px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+                                        Grounded via {m.source}
                                     </div>
                                 )}
                             </div>
@@ -167,9 +166,9 @@ const AIAssistant = () => {
                     ))}
                     {loading && (
                         <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--accent)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>AI</div>
-                            <div style={{ backgroundColor: 'var(--bg-surface)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                                <span style={{ opacity: 0.6, fontSize: '13px' }}>Analyzing live business data…</span>
+                            <div style={{ width: '30px', height: '30px', borderRadius: '6px', backgroundColor: 'var(--text-h)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '11px' }}>NX</div>
+                            <div style={{ backgroundColor: 'var(--bg-surface)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)' }}>
+                                <span style={{ color: 'var(--text-muted)', fontSize: '13px' }}>Evaluating operational context…</span>
                             </div>
                         </div>
                     )}

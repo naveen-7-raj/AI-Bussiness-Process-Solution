@@ -425,10 +425,10 @@ const Layout = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className={`badge ${isSuperAdmin ? 'error' : (isAdminOrSuperAdmin ? 'info' : 'warning')}`} style={{ fontSize: '11px', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px' }}>
-              {isSuperAdmin ? '★ Super Admin' : (isAdminOrSuperAdmin ? '● Admin' : `⚡ ${user?.role || 'Warehouse Lead'}`)}
+              {isSuperAdmin ? 'Super Admin' : (isAdminOrSuperAdmin ? 'Admin' : (user?.role || 'Warehouse Lead'))}
             </span>
             <span className="badge success">
-              <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--status-success)', display: 'inline-block' }}></span>
+              <span className="pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--status-success)', display: 'inline-block' }}></span>
               Live Pipeline Active
             </span>
           </div>

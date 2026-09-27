@@ -30,26 +30,16 @@ const LiveEvents = () => {
                     </p>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                    <span
-                        className={`badge ${connected ? 'success' : 'warning'}`}
-                        style={connected ? { animation: 'ws-pulse 2s ease-in-out infinite' } : {}}
-                    >
-                        {connected ? '● Live' : '○ Reconnecting…'}
+                    <span className={`badge ${connected ? 'success' : 'warning'}`}>
+                        <span className="pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: connected ? 'var(--status-success)' : 'var(--status-warning)', display: 'inline-block' }} />
+                        {connected ? 'Live Stream Active' : 'Reconnecting to Stream'}
                     </span>
                     {events.length > 0 && (
                         <button
                             onClick={clearEvents}
-                            style={{
-                                fontSize: '11px',
-                                padding: '4px 10px',
-                                borderRadius: '8px',
-                                border: '1px solid var(--border)',
-                                background: 'var(--bg-surface-hover)',
-                                color: 'var(--text)',
-                                cursor: 'pointer',
-                            }}
+                            className="btn-secondary btn-sm"
                         >
-                            Clear
+                            Clear Events
                         </button>
                     )}
                 </div>
@@ -59,14 +49,14 @@ const LiveEvents = () => {
             {events.length > 0 && (
                 <div className="grid-cards" style={{ marginBottom: '16px' }}>
                     {[
-                        { label: 'Total Events',  value: events.length,                                                   cls: 'info'    },
-                        { label: 'High Risk',      value: events.filter(e => e.risk?.toUpperCase() === 'HIGH').length,    cls: 'error'   },
-                        { label: 'Medium Risk',    value: events.filter(e => e.risk?.toUpperCase() === 'MEDIUM').length,  cls: 'warning' },
-                        { label: 'Low Risk',       value: events.filter(e => !['HIGH','MEDIUM'].includes(e.risk?.toUpperCase())).length, cls: 'success' },
+                        { label: 'Total Ingested Events',  value: events.length,                                                   cls: 'info'    },
+                        { label: 'High Risk',              value: events.filter(e => e.risk?.toUpperCase() === 'HIGH').length,    cls: 'error'   },
+                        { label: 'Medium Risk',            value: events.filter(e => e.risk?.toUpperCase() === 'MEDIUM').length,  cls: 'warning' },
+                        { label: 'Nominal / Low',          value: events.filter(e => !['HIGH','MEDIUM'].includes(e.risk?.toUpperCase())).length, cls: 'success' },
                     ].map(({ label, value, cls }) => (
                         <div key={label} className="stat-card">
                             <span className="stat-title">{label}</span>
-                            <span className={`stat-value`} style={{ fontSize: '24px' }}>{value}</span>
+                            <span className="stat-value" style={{ fontSize: '22px' }}>{value}</span>
                             <span className={`badge ${cls}`} style={{ alignSelf: 'flex-start', marginTop: '6px' }}>{label}</span>
                         </div>
                     ))}
@@ -76,11 +66,15 @@ const LiveEvents = () => {
             {/* ── main table ── */}
             <div className="card table-container" style={{ padding: 0 }}>
                 {events.length === 0 ? (
-                    <div style={{ padding: '60px', textAlign: 'center', opacity: 0.6 }}>
-                        <div style={{ fontSize: '40px', marginBottom: '16px' }}>📡</div>
-                        <p style={{ margin: 0, lineHeight: 1.7 }}>
-                            No live events yet.<br />
-                            <small>Run the simulator: <code>python simulator/erp_simulator.py</code></small>
+                    <div className="empty-state" style={{ padding: '64px 24px' }}>
+                        <div className="empty-state-icon">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                            </svg>
+                        </div>
+                        <div className="empty-state-title">Awaiting Inbound Telemetry</div>
+                        <p className="empty-state-desc">
+                            Listening on WebSocket channel for real-time Kafka event streams across operational topics.
                         </p>
                     </div>
                 ) : (
@@ -120,8 +114,8 @@ const LiveEvents = () => {
                                     </td>
                                     <td style={{ maxWidth: '300px', fontSize: '13px' }}>
                                         {evt.explanation && (
-                                            <div style={{ marginBottom: '6px', fontWeight: '500', color: 'var(--text-h)' }}>
-                                                ✨ {evt.explanation}
+                                            <div style={{ marginBottom: '6px', fontWeight: 500, color: 'var(--text-h)' }}>
+                                                {evt.explanation}
                                             </div>
                                         )}
                                         <div style={{ 

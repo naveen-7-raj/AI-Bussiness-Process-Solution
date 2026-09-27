@@ -137,62 +137,53 @@ const Dashboard = () => {
     return (
         <div>
             {/* ── Page Header & Facility Scope Toggle ── */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                 <div>
-                    <h1 style={{ fontSize: '22px', fontWeight: 600, color: 'var(--text-h)', marginBottom: '4px' }}>
+                    <h1 style={{ fontSize: '20px', fontWeight: 600, color: 'var(--text-h)', marginBottom: '4px' }}>
                         Operational Overview
                     </h1>
                     <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>
                         Real-time process telemetry, order velocity, and predictive risk distribution.
                     </p>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <div style={{ display: 'inline-flex', background: 'var(--bg-subtle, #f1f5f9)', padding: '3px', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                    <div className="segmented-control">
                         <button
+                            type="button"
                             onClick={() => setFacilityScope('ALL')}
-                            style={{
-                                padding: '4px 10px',
-                                fontSize: '12px',
-                                fontWeight: 500,
-                                borderRadius: '4px',
-                                border: 'none',
-                                cursor: 'pointer',
-                                background: facilityScope === 'ALL' ? '#ffffff' : 'transparent',
-                                color: facilityScope === 'ALL' ? 'var(--text-h)' : 'var(--text-muted)',
-                                boxShadow: facilityScope === 'ALL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                                transition: 'all 0.15s ease',
-                            }}
+                            className={`segmented-control-btn ${facilityScope === 'ALL' ? 'active' : ''}`}
+                            aria-label="View all network hubs"
                         >
-                            🌐 All Network Hubs
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="2" y1="12" x2="22" y2="12"></line>
+                                <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                            </svg>
+                            All Network Hubs
                         </button>
                         <button
+                            type="button"
                             onClick={() => setFacilityScope(userAssignedFacility)}
-                            style={{
-                                padding: '4px 10px',
-                                fontSize: '12px',
-                                fontWeight: 500,
-                                borderRadius: '4px',
-                                border: 'none',
-                                cursor: 'pointer',
-                                background: facilityScope !== 'ALL' ? '#ffffff' : 'transparent',
-                                color: facilityScope !== 'ALL' ? 'var(--text-h)' : 'var(--text-muted)',
-                                boxShadow: facilityScope !== 'ALL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none',
-                                transition: 'all 0.15s ease',
-                            }}
+                            className={`segmented-control-btn ${facilityScope !== 'ALL' ? 'active' : ''}`}
+                            aria-label={`View assigned hub ${userAssignedFacility}`}
                         >
-                            📍 My Assigned Hub ({userAssignedFacility})
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                <circle cx="12" cy="10" r="3"></circle>
+                            </svg>
+                            Assigned Hub ({userAssignedFacility})
                         </button>
                     </div>
                     <span className={`badge ${wsConnected ? 'success' : 'warning'}`}>
-                        <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: wsConnected ? 'var(--status-success)' : 'var(--status-warning)', display: 'inline-block' }}></span>
-                        {wsConnected ? 'Kafka Live' : 'Connecting'}
+                        <span className="pulse-dot" style={{ width: '6px', height: '6px', borderRadius: '50%', background: wsConnected ? 'var(--status-success)' : 'var(--status-warning)', display: 'inline-block' }}></span>
+                        {wsConnected ? 'Telemetry Active' : 'Connecting to Stream'}
                     </span>
                 </div>
             </div>
 
             {/* Scope Info Banner when assigned hub selected */}
             {facilityScope !== 'ALL' && (
-                <div className="card" style={{ marginBottom: '16px', padding: '10px 14px', background: 'var(--bg-surface, #ffffff)', borderColor: 'var(--brand-blue, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="card" style={{ marginBottom: '16px', padding: '10px 14px', background: 'var(--bg-surface, #ffffff)', borderColor: 'var(--brand-blue, #0284c7)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px' }}>
                         <span className="badge info" style={{ fontSize: '11px' }}>Facility View</span>
                         <span style={{ fontWeight: 600, color: 'var(--text-h)' }}>
@@ -204,7 +195,8 @@ const Dashboard = () => {
                     </div>
                     <button
                         onClick={() => setFacilityScope('ALL')}
-                        style={{ background: 'none', border: 'none', color: 'var(--brand-blue)', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                        className="btn-ghost"
+                        style={{ fontSize: '12px', fontWeight: 500, padding: '4px 8px', color: 'var(--brand-blue)' }}
                     >
                         Reset to Global Network →
                     </button>
@@ -214,22 +206,22 @@ const Dashboard = () => {
             {/* ── KPI Grid ── */}
             <div className="grid-cards">
                 <KpiCard
-                    title="Total Orders"
+                    title="Total Ingested Orders"
                     value={stats?.total_orders?.toLocaleString()}
-                    sub="Cumulative logged"
+                    sub="Cumulative logged across network"
                     loading={statsLoading}
                 />
                 <KpiCard
                     title="Active Backlog"
                     value={stats?.total_backlog != null ? Number(stats.total_backlog).toLocaleString() : '—'}
-                    sub={(stats?.total_backlog ?? 0) > 20 ? 'Above baseline' : 'Normal volume'}
+                    sub={(stats?.total_backlog ?? 0) > 20 ? 'Above nominal threshold (<20)' : 'Operating within nominal limits'}
                     subClass={(stats?.total_backlog ?? 0) > 20 ? 'negative' : 'positive'}
                     loading={statsLoading}
                 />
                 <KpiCard
-                    title="High-Risk Warehouses"
+                    title="High-Risk Facilities"
                     value={highRisk.length}
-                    sub={highRisk.length > 0 ? 'Requires attention' : 'All nominal'}
+                    sub={highRisk.length > 0 ? 'Requires operational review' : 'All facility nodes nominal'}
                     subClass={highRisk.length > 0 ? 'negative' : 'positive'}
                     loading={summaryLoading}
                 />
@@ -310,8 +302,17 @@ const Dashboard = () => {
                             <tbody>
                                 {highRisk.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px' }}>
-                                            No critical facility risks detected.
+                                        <td colSpan="5" style={{ padding: '32px 16px' }}>
+                                            <div className="empty-state" style={{ padding: '8px 0' }}>
+                                                <div className="empty-state-icon">
+                                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                                                        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                                                    </svg>
+                                                </div>
+                                                <div className="empty-state-title">All Facility Nodes Nominal</div>
+                                                <p className="empty-state-desc">Zero facilities currently exceed delay risk thresholds across the active operational scope.</p>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : (
@@ -385,8 +386,14 @@ const Dashboard = () => {
 
                     <div style={{ maxHeight: '280px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         {realtimeEvents.length === 0 ? (
-                            <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-muted)', fontSize: '13px' }}>
-                                Awaiting incoming Kafka events…
+                            <div className="empty-state" style={{ padding: '32px 16px' }}>
+                                <div className="empty-state-icon">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                                    </svg>
+                                </div>
+                                <div className="empty-state-title">Telemetry Ingestion Idle</div>
+                                <p className="empty-state-desc">Awaiting incoming real-time Kafka event streams across active logistics nodes.</p>
                             </div>
                         ) : (
                             realtimeEvents.slice(0, 15).map((evt, idx) => (

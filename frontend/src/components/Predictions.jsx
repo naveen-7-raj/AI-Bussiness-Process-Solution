@@ -147,8 +147,13 @@ const Predictions = () => {
                         Live gradient boosted decision tree model with Explainable AI (SHAP TreeExplainer)
                     </p>
                 </div>
-                <button onClick={handleRefreshPredictions} disabled={running || initialLoading}>
-                    {running ? '⚙️ Refreshing Real-Time Predictions…' : '⚡ Refresh Real-Time Predictions'}
+                <button onClick={handleRefreshPredictions} disabled={running || initialLoading} className="btn-primary">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    {running ? 'Evaluating Inference Engine…' : 'Run XGBoost Inference'}
                 </button>
             </div>
 
@@ -308,18 +313,19 @@ const Predictions = () => {
                                                                 <span style={{
                                                                     fontSize: '11px',
                                                                     color: e.direction === 'increases' ? 'var(--status-error)' : 'var(--status-success)',
-                                                                    opacity: 0.9,
+                                                                    fontWeight: 500,
                                                                     whiteSpace: 'nowrap',
                                                                 }}>
-                                                                    ({e.direction} delay risk)
+                                                                    {e.direction === 'increases' ? '↑ Increases delay risk' : '↓ Mitigates delay risk'}
                                                                 </span>
                                                             </div>
                                                         );
                                                     })}
                                                 </div>
                                             ) : (
-                                                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>
-                                                    ✓ Operating within normal parameters
+                                                <span style={{ color: 'var(--status-success)', fontSize: '12px', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+                                                    <span style={{ width: '6px', height: '6px', borderRadius: '50%', backgroundColor: 'var(--status-success)', display: 'inline-block' }} />
+                                                    Operating within nominal baseline
                                                 </span>
                                             )}
                                         </td>

@@ -86,8 +86,13 @@ const Inventory = () => {
                         Multi-facility product inventory with live stock levels
                     </p>
                 </div>
-                <button onClick={handleSyncERP} disabled={syncing}>
-                    {syncing ? '🔄 Syncing ERP Simulator…' : '🔄 Sync ERP (Demo Simulator)'}
+                <button onClick={handleSyncERP} disabled={syncing} className="btn-primary">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <polyline points="1 20 1 14 7 14"></polyline>
+                        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                    </svg>
+                    {syncing ? 'Synchronizing ERP Inventory…' : 'Synchronize ERP Stock'}
                 </button>
             </div>
 
@@ -161,7 +166,19 @@ const Inventory = () => {
                             <tr><td colSpan="5" style={{ textAlign: 'center', padding: '24px' }}>Loading inventory from PostgreSQL…</td></tr>
                         )}
                         {!loading && sortedItems.length === 0 && (
-                            <tr><td colSpan="5" style={{ textAlign: 'center', padding: '24px', opacity: 0.6 }}>No inventory records found. Click "Sync ERP" to populate demo stock.</td></tr>
+                            <tr>
+                                <td colSpan="5" style={{ padding: '36px 16px' }}>
+                                    <div className="empty-state" style={{ padding: '8px 0' }}>
+                                        <div className="empty-state-icon">
+                                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                            </svg>
+                                        </div>
+                                        <div className="empty-state-title">No Inventory Records Found</div>
+                                        <p className="empty-state-desc">No stock records match the selected scope. Synchronize with ERP to update inventory.</p>
+                                    </div>
+                                </td>
+                            </tr>
                         )}
                         {!loading && sortedItems.map((item, idx) => (
                             <tr key={`${item.warehouse_id}-${item.product_id}-${idx}`}>
