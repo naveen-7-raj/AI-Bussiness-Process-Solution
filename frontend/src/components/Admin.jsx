@@ -3,8 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFetch } from '../hooks/useFetch';
 import { useWebSocket } from '../hooks/useWebSocket';
 import CustomDropdown from './CustomDropdown';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import { API_BASE } from '../config/api';
 
 const WAREHOUSE_NAMES = {
     'WH01': 'Chennai Central Warehouse',

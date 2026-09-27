@@ -2,8 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { filterByTimeRange } from '../utils/dateFilters';
 import CustomDropdown from './CustomDropdown';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import { API_BASE } from '../config/api';
 
 const ACTION_BADGES = {
     'START_ACTION': 'warning',

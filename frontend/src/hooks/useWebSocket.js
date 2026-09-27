@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-
-const apiBase = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
-const WS_URL = import.meta.env.VITE_WS_URL || apiBase.replace(/^http/, 'ws') + '/api/ws';
+import { WS_URL } from '../config/api';
 const MAX_EVENTS = 20;
 const RECONNECT_DELAY_MS = 2000;
 const MAX_RECONNECT_DELAY_MS = 10000;

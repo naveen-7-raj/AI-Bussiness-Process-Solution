@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { API_BASE } from '../config/api';
 
 const AIAssistant = () => {
     const { token, logout } = useAuth();
@@ -42,7 +43,7 @@ const AIAssistant = () => {
         }
 
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/copilot/chat`, {
+            const res = await fetch(`${API_BASE}/api/copilot/chat`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

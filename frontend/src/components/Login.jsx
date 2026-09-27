@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import LogoBrand from './LogoMark';
+import { API_BASE } from '../config/api';
 
 const Login = () => {
     const [email, setEmail] = useState('');
@@ -22,7 +23,7 @@ const Login = () => {
     // Fetch Google Client ID from backend if not already set in frontend env
     useEffect(() => {
         if (!activeClientId) {
-            fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/auth/google/config`)
+            fetch(`${API_BASE}/auth/google/config`)
                 .then(res => res.json())
                 .then(data => {
                     if (data?.client_id) {
@@ -39,7 +40,7 @@ const Login = () => {
         setError(null);
         setLoading(true);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/auth/login`, {
+            const response = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -71,7 +72,7 @@ const Login = () => {
         setError(null);
         setLoading(true);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/auth/verify-otp`, {
+            const response = await fetch(`${API_BASE}/auth/verify-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, otp: otp.trim() }),
@@ -97,7 +98,7 @@ const Login = () => {
         setError(null);
         setLoading(true);
         try {
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/auth/resend-otp`, {
+            const response = await fetch(`${API_BASE}/auth/resend-otp`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email }),
@@ -126,7 +127,7 @@ const Login = () => {
         setError(null);
         setGoogleLoading(true);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/auth/google`, {
+            const res = await fetch(`${API_BASE}/auth/google`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ credential: response.credential }),

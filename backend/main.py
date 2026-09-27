@@ -116,6 +116,9 @@ else:
     vercel_prod = "https://ai-bussiness-process-solution-delta.vercel.app"
     if vercel_prod not in allowed_origins:
         allowed_origins.append(vercel_prod)
+    for dev_origin in ["http://localhost:5173", "http://127.0.0.1:5173", "http://localhost:3000"]:
+        if dev_origin not in allowed_origins:
+            allowed_origins.append(dev_origin)
 
 app.add_middleware(
     CORSMiddleware,
@@ -1089,8 +1092,6 @@ async def startup():
     global main_event_loop, _broadcast_queue
     main_event_loop = asyncio.get_running_loop()
     _broadcast_queue = asyncio.Queue()
-    # Start the async broadcast worker as a background task on the main loop
-    asyncio.create_task(_broadcast_worker())
     await initialize_database()
     threading.Thread(target=kafka_consumer_loop, daemon=True).start()
     threading.Thread(target=internal_event_simulator_loop, daemon=True).start()

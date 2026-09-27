@@ -1,6 +1,14 @@
 {
   "rewrites": [
     {
+      "source": "/api/(.*)",
+      "destination": "https://ai-bussiness-process-solution.onrender.com/api/$1"
+    },
+    {
+      "source": "/auth/(.*)",
+      "destination": "https://ai-bussiness-process-solution.onrender.com/auth/$1"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

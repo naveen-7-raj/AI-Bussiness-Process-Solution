@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import { useFetch } from '../hooks/useFetch';
 import { filterByTimeRange } from '../utils/dateFilters';
 import CustomDropdown from './CustomDropdown';
+import { API_BASE } from '../config/api';
 
 const WAREHOUSE_NAMES = {
     'WH01': 'Chennai Central Warehouse',
@@ -53,7 +54,7 @@ const Inventory = () => {
         setSyncing(true);
         setSyncResult(null);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/inventory/sync`, {
+            const res = await fetch(`${API_BASE}/api/inventory/sync`, {
                 method: 'POST',
                 headers: {
                     Authorization: `Bearer ${token}`,

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import CustomDropdown from './CustomDropdown';
+import { API_BASE } from '../config/api';
 
 const TIMEZONES = [
     { value: 'Asia/Kolkata', label: 'India Standard Time (Asia/Kolkata, UTC+5:30)' },
@@ -28,7 +29,7 @@ const Settings = () => {
     useEffect(() => {
         const fetchSettings = async () => {
             try {
-                const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/settings`, {
+                const res = await fetch(`${API_BASE}/api/settings`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -49,7 +50,7 @@ const Settings = () => {
         setSaving(true);
         setStatusMsg(null);
         try {
-            const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/api/settings`, {
+            const res = await fetch(`${API_BASE}/api/settings`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -210,7 +211,6 @@ const Settings = () => {
 };
 
 const AccessRequestForm = ({ token }) => {
-    const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
     const [reason, setReason] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [statusInfo, setStatusInfo] = useState(null);

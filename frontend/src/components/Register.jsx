@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import LogoBrand from './LogoMark';
+import { API_BASE } from '../config/api';
 
 const Register = () => {
     const [email, setEmail] = useState('');
@@ -22,7 +23,7 @@ const Register = () => {
                 ? email.split('@')[1].split('.')[0].toUpperCase() + ' Corp' 
                 : 'Enterprise';
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000'}/auth/register`, {
+            const response = await fetch(`${API_BASE}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ company_name: derivedCompany, email, password }),

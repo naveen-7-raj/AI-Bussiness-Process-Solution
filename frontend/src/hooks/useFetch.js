@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+import { API_BASE } from '../config/api';
 
 /**
  * useFetch – simple authenticated polling hook.
